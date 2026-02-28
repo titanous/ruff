@@ -785,6 +785,20 @@ impl<'db> Type<'db> {
         })
     }
 
+    pub(crate) fn references_typevar(
+        self,
+        db: &'db dyn Db,
+        typevar_id: TypeVarIdentity<'db>,
+    ) -> bool {
+        any_over_type(db, self, false, |ty| match ty {
+            Type::TypeVar(bound_typevar) => typevar_id == bound_typevar.typevar(db).identity(db),
+            Type::KnownInstance(KnownInstanceType::TypeVar(typevar)) => {
+                typevar_id == typevar.identity(db)
+            }
+            _ => false,
+        })
+    }
+
     /// Returns `true` if this type supports eager `Self` binding via `bind_self_typevars`.
     ///
     /// `FunctionLiteral`, `BoundMethod`, and function-like `Callable` types return `false`
@@ -8329,17 +8343,6 @@ impl<'db> TypeVarInstance<'db> {
         ))
     }
 
-    fn type_is_self_referential(self, db: &'db dyn Db, ty: Type<'db>) -> bool {
-        let identity = self.identity(db);
-        any_over_type(db, ty, false, |ty| match ty {
-            Type::TypeVar(bound_typevar) => identity == bound_typevar.typevar(db).identity(db),
-            Type::KnownInstance(KnownInstanceType::TypeVar(typevar)) => {
-                identity == typevar.identity(db)
-            }
-            _ => false,
-        })
-    }
-
     /// Returns the "unchecked" upper bound of a type variable instance.
     /// `lazy_bound` checks if the upper bound type is generic (generic upper bound is not allowed).
     #[salsa::tracked(
@@ -8520,10 +8523,10 @@ impl<'db> TypeVarInstance<'db> {
     fn lazy_default(self, db: &'db dyn Db) -> Option<Type<'db>> {
         let default = self.lazy_default_unchecked(db)?;
 
-        // Unlike bounds/constraints, default types are allowed to be generic (https://peps.python.org/pep-0696/#using-another-type-parameter-as-default).
+        // Unlike bounds/constraints, default types are allowed to be generic (https://typing.python.org/en/latest/spec/generics.html#defaults-for-type-parameters).
         // Here we simply check for non-self-referential.
         // TODO: We should also check for non-forward references.
-        if self.type_is_self_referential(db, default) {
+        if default.references_typevar(db, self.identity(db)) {
             return None;
         }
 
