@@ -131,7 +131,7 @@ async def _(flag: bool):
 
     # error: [invalid-context-manager] "Object of type `Manager` cannot be used with `async with` because the method `__aenter__` may be missing"
     async with Manager() as f:
-        reveal_type(f)  # revealed: CoroutineType[Any, Any, str]
+        reveal_type(f)  # revealed: CoroutineType[Any, Any, str]  # ty: ignore[unused-awaitable]
 ```
 
 ## Invalid `__aenter__` signature
@@ -148,7 +148,7 @@ async def main():
 
     # error: [invalid-context-manager] "Object of type `Manager` cannot be used with `async with` because it does not correctly implement `__aenter__`"
     async with context_expr as f:
-        reveal_type(f)  # revealed: CoroutineType[Any, Any, str]
+        reveal_type(f)  # revealed: CoroutineType[Any, Any, str]  # ty: ignore[unused-awaitable]
 ```
 
 ## Accidental use of async `async with`

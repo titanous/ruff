@@ -15,7 +15,7 @@ reveal_type(get_int())  # revealed: int
 async def get_int_async() -> int:
     return 42
 
-reveal_type(get_int_async())  # revealed: CoroutineType[Any, Any, int]
+reveal_type(get_int_async())  # revealed: CoroutineType[Any, Any, int]  # ty: ignore[unused-awaitable]
 ```
 
 ## Generic
